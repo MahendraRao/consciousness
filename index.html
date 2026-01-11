@@ -2,176 +2,147 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stargazer - Shuur Highlight</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stargazer Journey</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Georgia', serif; color: white; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'serif'; color: white; touch-action: manipulation; }
         #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         
-        #overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 5;
-            text-align: center;
-            width: 85%;
-            pointer-events: none;
+        /* Visualizer */
+        #monitor { position: fixed; top: 20px; right: 20px; display: flex; gap: 3px; height: 30px; z-index: 100; align-items: flex-end; }
+        .bar { width: 6px; background: #00ff00; height: 10%; transition: height 0.1s; }
+
+        #overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 5; text-align: center; width: 90%; pointer-events: none; }
+        #lyrics { font-size: 1.5rem; line-height: 2; text-shadow: 0 0 15px white; white-space: pre-line; display: none; }
+        .highlight { color: #ff3333; font-weight: bold; }
+        
+        #instruction { 
+            font-size: 1.6rem; letter-spacing: 5px; animation: pulse 2s infinite; cursor: pointer; 
+            pointer-events: auto; padding: 40px; background: rgba(255,255,255,0.1); border-radius: 15px;
+            user-select: none;
         }
 
-        #lyrics {
-            font-size: calc(1.4rem + 1vw);
-            line-height: 2;
-            text-shadow: 0 0 25px rgba(255,255,255,0.6);
-            white-space: pre-line;
-            display: none;
-            letter-spacing: 1.5px;
+        #rescue-btn {
+            position: fixed; top: 60px; right: 20px; background: #ff3333; color: white;
+            padding: 8px; border-radius: 4px; z-index: 100; cursor: pointer; display: none;
+            font-size: 0.7rem; border: none; font-family: sans-serif;
         }
 
-        /* Highlight Style */
-        .highlight {
-            color: #ff3333; /* Pure Red */
-            text-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
-            font-weight: bold;
-        }
-
-        #instruction {
-            font-size: 2rem;
-            font-weight: bold;
-            letter-spacing: 6px;
-            animation: pulse 2s infinite ease-in-out;
-            text-shadow: 0 0 20px rgba(255,255,255,0.6);
-            cursor: pointer;
-            pointer-events: auto;
-        }
-
-        #restart-btn {
-            position: fixed;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid white;
-            color: white;
-            padding: 10px 25px;
-            cursor: pointer;
-            display: none;
-            font-family: 'serif';
-            letter-spacing: 2px;
-            backdrop-filter: blur(5px);
-            transition: 0.3s;
-        }
-
-        #restart-btn:hover { background: white; color: black; }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.3; transform: scale(0.98); }
-            50% { opacity: 1; transform: scale(1); }
-        }
+        @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
     </style>
 </head>
 <body>
 
-    <div id="canvas-container"></div>
+    <div id="monitor"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+    <button id="rescue-btn" onclick="forceAudio()">RETRY AUDIO</button>
 
+    <div id="canvas-container"></div>
     <div id="overlay">
-        <div id="instruction">TAP OR PRESS ENTER TO START</div>
+        <div id="instruction">TAP TO START JOURNEY</div>
         <div id="lyrics"></div>
     </div>
 
-    <button id="restart-btn" onclick="location.reload()">REWATCH JOURNEY</button>
-
-    <audio id="narration"><source src="Interstellar1.mp3" type="audio/mpeg"></audio>
-    <audio id="bgm" loop><source src="interstellar.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm" loop playsinline src="interstellar.mp3"></audio>
+    <audio id="narration" playsinline src="interstellar1.mp3"></audio>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        // --- 3D STARFIELD ---
+        // 1. Scene Setup
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({antialias: true});
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-        const starGeometry = new THREE.BufferGeometry();
+        
+        const starGeo = new THREE.BufferGeometry();
         const starVertices = [];
-        for (let i = 0; i < 12000; i++) {
-            starVertices.push((Math.random()-0.5)*2000, (Math.random()-0.5)*2000, (Math.random()-0.5)*2000);
-        }
-        starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
-        const stars = new THREE.Points(starGeometry, new THREE.PointsMaterial({color: 0xffffff, size: 0.5}));
-        scene.add(stars);
+        for (let i = 0; i < 2000; i++) starVertices.push((Math.random()-0.5)*2000, (Math.random()-0.5)*2000, (Math.random()-0.5)*2000);
+        starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 1.5})));
         camera.position.z = 5;
 
-        function animate() {
-            requestAnimationFrame(animate);
-            stars.rotation.y += 0.0002;
-            renderer.render(scene, camera);
-        }
+        function animate() { requestAnimationFrame(animate); renderer.render(scene, camera); }
         animate();
 
-        // --- CONTENT ---
+        // 2. Lyrics
         const text = `Woh kya batayenge raahein tumko,
 Khud ki Jinko khabar nahi hai,
 gazab ka dawa hai papiyon par
 ajeeb jidd par adey hue hai
 sikhate humko, wafa ki baatein 
-khud ko shu'ūr (consciousness) pata nahi hai`;
+khud ko SHUUR (consciousness) pata nahi hai`;
 
-        const typingSpeed = 90; 
-        const lyricsEl = document.getElementById('lyrics');
-        const instruction = document.getElementById('instruction');
-        const bgm = document.getElementById('bgm');
-        const narration = document.getElementById('narration');
-        const restartBtn = document.getElementById('restart-btn');
         let index = 0;
         let started = false;
 
         function typeWriter() {
+            const lyricsEl = document.getElementById('lyrics');
             if (index < text.length) {
-                // Check if we are at the start of the word "shu'ūr"
-                if (text.substring(index, index + 5) === "shu'ūr") {
-                    const highlightSpan = document.createElement('span');
-                    highlightSpan.className = 'highlight';
-                    highlightSpan.textContent = "shu'ūr";
-                    lyricsEl.appendChild(highlightSpan);
+                if (text.substring(index, index + 5) === "SHUUR") {
+                    lyricsEl.innerHTML += '<span class="highlight">SHUUR</span>';
                     index += 5;
                 } else {
-                    let char = text.charAt(index);
-                    lyricsEl.innerHTML += char;
+                    lyricsEl.innerHTML += text.charAt(index);
                     index++;
                 }
-
-                let charAtLast = text.charAt(index - 1);
-                let currentDelay = typingSpeed;
-                if (charAtLast === ",") currentDelay = typingSpeed * 2.5;
-                if (charAtLast === "\n") currentDelay = typingSpeed * 4;
-
-                setTimeout(typeWriter, currentDelay);
+                setTimeout(typeWriter, 90);
             }
         }
 
-        function start() {
+        // 3. The "Unstoppable" Start
+        function startJourney() {
             if (started) return;
             started = true;
-            instruction.style.display = 'none';
-            lyricsEl.style.display = 'block';
-            bgm.volume = 0.25; 
-            bgm.play();
-            narration.volume = 1.0;
-            narration.play();
+
+            // CHANGE UI IMMEDIATELY - NO WAITING
+            document.getElementById('instruction').style.display = 'none';
+            document.getElementById('lyrics').style.display = 'block';
+            
             typeWriter();
-            const warp = setInterval(() => {
-                camera.position.z -= 0.1;
-                if(camera.position.z < -250) clearInterval(warp);
-            }, 10);
+            
+            // Start warp
+            setInterval(() => { camera.position.z -= 0.15; }, 20);
+
+            // Attempt Audio
+            forceAudio();
         }
 
-        narration.onended = () => { restartBtn.style.display = 'block'; };
-        window.addEventListener('keydown', (e) => { if(e.key === "Enter") start(); });
-        window.onclick = start;
-        window.ontouchstart = start;
+        function forceAudio() {
+            const bgm = document.getElementById('bgm');
+            const narration = document.getElementById('narration');
+            const rescue = document.getElementById('rescue-btn');
+
+            bgm.volume = 0.3;
+            narration.volume = 1.0;
+
+            // Try to play
+            let p1 = bgm.play();
+            let p2 = narration.play();
+
+            if (p1 !== undefined) {
+                p1.catch(() => { rescue.style.display = 'block'; });
+            }
+            if (p2 !== undefined) {
+                p2.catch(() => { rescue.style.display = 'block'; });
+            }
+
+            // Visualizer bars
+            setInterval(() => {
+                document.querySelectorAll('.bar').forEach(b => {
+                    b.style.height = bgm.paused ? '10%' : (Math.random() * 90 + 10) + '%';
+                });
+            }, 150);
+        }
+
+        // 4. Listeners
+        const trigger = document.getElementById('instruction');
+        // Click for Web
+        trigger.onclick = startJourney;
+        // Touch for OnePlus
+        trigger.addEventListener('touchstart', function(e) {
+            startJourney();
+        }, false);
+
     </script>
 </body>
 </html>
