@@ -41,12 +41,15 @@
             padding: 8px; border-radius: 4px; z-index: 100; cursor: pointer; display: none;
             font-size: 0.7rem; border: none; font-family: sans-serif;
         }
-
+        #credits {
+    position: fixed; bottom: 20px; width: 100%; text-align: center; font-size: 0.8rem; opacity: 0.5;
+    z-index: 10; display: none; letter-spacing: 2px;
+    }
         @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
     </style>
 </head>
 <body>
-
+    <div id="credits">CREATED BY MAHENDRA RAO</div>
     <div id="monitor"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
     <button id="rescue-btn" onclick="forceAudio()">RETRY AUDIO</button>
 
@@ -111,6 +114,7 @@ khud ko SHUUR (consciousness) pata nahi hai`;
             // CHANGE UI IMMEDIATELY - NO WAITING
             document.getElementById('instruction').style.display = 'none';
             document.getElementById('lyrics').style.display = 'block';
+            document.getElementById('credits').style.display = 'block';
             
             typeWriter();
             
